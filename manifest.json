@@ -1,0 +1,13 @@
+{
+  "name": "TMDB images",
+  "id": "1232397378625022504",
+  "api": "1.0.0",
+  "main": "dist/code.js",
+  "capabilities": [],
+  "enableProposedApi": false,
+  "editorType": [
+    "figma",
+    "figjam"
+  ],
+  "ui": "./dist/index.html"
+}

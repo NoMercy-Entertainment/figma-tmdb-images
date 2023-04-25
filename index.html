@@ -1,0 +1,175 @@
+<html>
+
+  <head>
+    <link rel="stylesheet" href="https://static.figma.com/api/figma-extension-api-0.0.1.css">
+    <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+    <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
+    
+    <style>
+    </style>
+  </head>
+
+  <body class="border border-black text-white p-4">
+    <form>
+      <label>Parenting strategy:</label>
+      <div>
+        <input type="radio" name="parentingStrategy" value="page">
+        Page
+      </div>
+      <div>
+        <input type="radio" name="parentingStrategy" value="immediate" checked="checked">
+        In parentable node
+      </div>
+    </form>
+
+    <div class="flex w-full gap-2 p-2">
+      <button onclick="add('add-people')" class="bg-neutral-800 text-white text-sm px-3 py-1 rounded-md">
+        People
+      </button>
+      <button onclick="add('add-posters')" class="bg-neutral-800 text-white text-sm px-3 py-1 rounded-md">
+        Posters
+      </button>
+      <button onclick="add('add-backdrops')" class="bg-neutral-800 text-white text-sm px-3 py-1 rounded-md">
+        Backdrops
+      </button>
+    </div>
+
+    <div id="draggable" class="flex flex-col w-full gap-2 p-2">
+      <div id="profiles" class="gap-2 w-full flex flex-nowrap overflow-auto"></div>
+      <div id="posters" class="gap-2 w-full flex flex-nowrap overflow-auto"></div>
+      <div id="backdrops" class="gap-2 w-full flex flex-nowrap overflow-auto"></div>
+    </div>
+
+  </body>
+  <script src="./code.js"></script>
+
+  <script>
+
+    onmessage = (event) => {
+      event.data.pluginMessage?.posters.sort(() => .5 - Math.random()).slice(0, 18).forEach(item =>
+        createImage({
+          parent: posters,
+          type: 'poster',
+          src: item.src,
+          title: item.title ?? item.name
+        }));
+      event.data.pluginMessage?.backdrops.sort(() => .5 - Math.random()).slice(0, 18).forEach(item =>
+        createImage({
+          parent: backdrops,
+          type: 'backdrop',
+          src: item.src,
+          title: item.title ?? item.name
+        }));
+      event.data.pluginMessage?.profiles.sort(() => .5 - Math.random()).slice(0, 18).forEach(item =>
+        createImage({
+          parent: profiles,
+          type: 'profile',
+          src: item.src,
+          title: item.title ?? item.name
+        }));
+
+      runFigma();
+    }
+
+    function add(type) {
+      window.parent.postMessage({
+        pluginMessage: {
+          event: type,
+        }
+      }, '*');
+    }
+
+    function addClasses(el, names) {
+      for (const name of names.filter(Boolean)) {
+        el.classList.add(name.trim());
+      }
+    }
+
+    function createImage({ parent, type, src, title }) {
+      const span = document.createElement('span');
+      span.setAttribute('draggable', 'true');
+      addClasses(span, [
+        'w-[inherit]',
+      ]);
+      parent.appendChild(span);
+
+      const image = document.createElement('img');
+      image.setAttribute('alt', title);
+      image.setAttribute('loading', 'lazy');
+      image.addEventListener('click', () => {
+
+        window.parent.postMessage(
+          {
+            pluginMessage: {
+              event: 'click-image',
+              src,
+              title,
+              type,
+            }
+          },
+          '*'
+        );
+      });
+
+      image.setAttribute('data-src', src);
+      image.src = `https://image.tmdb.org/t/p/w300${src}`;
+
+      addClasses(image, [
+        'h-auto',
+        'object-cover',
+        'rounded-sm',
+        'cursor-pointer'
+      ]);
+
+      if (type !== 'backdrop') {
+        addClasses(image, [
+          'min-w-[calc((100vw-7rem)/6)]',
+          'h-auto'
+        ]);
+      } else {
+        addClasses(image, [
+          'min-w-[calc((100vw-6rem)/3)]',
+          'h-auto',
+        ]);
+      }
+
+      span.appendChild(image);
+      return image;
+    }
+
+    function runFigma() {
+      const draggable = document.querySelectorAll('[draggable]');
+
+      for (const icon of draggable) {
+        icon.addEventListener('dragend', e => {
+          console.log('dragend', e);
+          if (e.view.length === 0) return;
+
+          const file = new File(
+            [e.target.innerHTML],
+            'content.jpg',
+            { type: 'image/jpg' }
+          );
+
+          const parentingStrategy = document.querySelector('input[name="parentingStrategy"]:checked').value;
+          window.parent.postMessage(
+            {
+              pluginDrop: {
+                clientX: e.clientX,
+                clientY: e.clientY,
+                files: [file],
+                dropMetadata: {
+                  parentingStrategy,
+                  src: e.target.dataset.src,
+                }
+              }
+            },
+            '*'
+          );
+        });
+      }
+    }
+
+  </script>
+
+</html>
